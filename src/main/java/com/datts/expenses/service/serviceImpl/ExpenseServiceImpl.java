@@ -1,10 +1,14 @@
 package com.datts.expenses.service.serviceImpl;
 
 import com.datts.expenses.entity.Expense;
+import com.datts.expenses.exceptionHandeler.ResourceNotFoundException;
 import com.datts.expenses.repository.ExpenseRepository;
 import com.datts.expenses.service.ExpenseService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.sql.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,8 +22,8 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     @Override
-    public List<Expense> getAllExpense() {
-        return expenseRepository.findAll();
+    public Page<Expense> getAllExpense(Pageable pageable) {
+        return expenseRepository.findAll(pageable);
     }
 
     @Override
@@ -28,12 +32,13 @@ public class ExpenseServiceImpl implements ExpenseService {
         if (expense.isPresent()) {
             return expense.get();
         }
-        throw new RuntimeException("no Expense found for id :"+id);
+        throw new ResourceNotFoundException("no Expense found for id :"+id);
     }
 
     @Override
     public void deleteById(Long id) {
-        expenseRepository.deleteById(id);
+        Expense expense = getById(id);
+        expenseRepository.delete(expense);
     }
 
     @Override
@@ -50,5 +55,26 @@ public class ExpenseServiceImpl implements ExpenseService {
         existingExpense.setDescription(expense.getDescription() != null ? expense.getDescription() : existingExpense.getDescription());
         existingExpense.setName(expense.getName() != null ? expense.getName() : existingExpense.getName());
         return expenseRepository.save(existingExpense);
+    }
+
+    @Override
+    public List<Expense> getByCategory(String category, Pageable pageable) {
+        return expenseRepository.findByCategory(category, pageable).toList();
+    }
+
+    @Override
+    public List<Expense> getByNameContains(String key, Pageable pageable) {
+        return expenseRepository.findByNameContaining(key, pageable).toList();
+    }
+
+    @Override
+    public List<Expense> getByDateBetween(Date startDate, Date endDate, Pageable pageable) {
+        if (startDate == null){
+            startDate = new Date(0);
+        }
+        if(endDate == null){
+            endDate = new Date(System.currentTimeMillis());
+        }
+        return expenseRepository.findByDateBetween(startDate, endDate,pageable).toList();
     }
 }
